@@ -22,6 +22,8 @@ request(URL, Method, Hdrs, Body, Timeout, Config) ->
             {ok, {{Status, <<>>}, RespHeaders, RespBody}};
         {ok, Status, RespHeaders} ->
             {ok, {{Status, <<>>}, RespHeaders, <<>>}};
+        error_no_members ->
+            {error, error_no_members};
         Error ->
             Error
     end.
