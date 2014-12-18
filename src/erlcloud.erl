@@ -8,7 +8,7 @@ start() ->
     application:load(?APP),
     {ok, Apps} = application:get_key(?APP, applications),
     [application:start(App) || App <- Apps],
-    PoolSize = application:get_env(?APP, pool_size, 50),
+    PoolSize = application:get_env(?APP, workers, 50),
     MaxConn = application:get_env(?APP, maxconn, 50),
     Concurrency = application:get_env(?APP, concurrency, 50),
     {ok, _} = application:ensure_all_started(hackney_pooler),
