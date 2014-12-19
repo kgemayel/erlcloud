@@ -17,13 +17,11 @@ request(URL, Method, Hdrs, Body, Timeout, Config) ->
     Options = [{recv_timeout, Timeout},
                {connect_timeout, Timeout}],
 
-    case hackney_pooler:request(?POOL_NAME, Method, URL, Hdrs, Body, Options) of
+    case hackney_pooler:request(?POOL_NAME, Method, URL, Hdrs, Body, Options, available_worker, infinity) of
         {ok, Status, RespHeaders, RespBody} ->
             {ok, {{Status, <<>>}, RespHeaders, RespBody}};
         {ok, Status, RespHeaders} ->
             {ok, {{Status, <<>>}, RespHeaders, <<>>}};
-        error_no_members ->
-            {error, error_no_members};
         Error ->
             Error
     end.
