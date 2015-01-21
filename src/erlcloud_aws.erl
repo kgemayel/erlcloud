@@ -11,6 +11,7 @@
          sign_v4/5]).
 
 -export([do_async/1, do_async/2]).
+-export([set_pool/0, set_pool/1]).
 
 -include("erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
@@ -21,6 +22,8 @@
          security_token=undefined :: string(),
          expiration_gregorian_seconds :: integer()
         }).
+
+-define(DEFAULT_POOL, erlcloud_pool).
 
 aws_request_xml(Method, Host, Path, Params, #aws_config{} = Config) ->
     Body = aws_request(Method, Host, Path, Params, Config),
@@ -368,3 +371,9 @@ do_async(F, To) ->
     after
         erlang:erase(aws_async_request)
     end.
+
+set_pool() ->
+    set_pool(?DEFAULT_POOL).
+
+set_pool(PoolName) ->
+    erlang:put(aws_pool, PoolName).

@@ -35,11 +35,17 @@ do_sync_request(URL, Method, Hdrs, Body, Options) ->
     end.
 
 do_async_request(To, URL, Method, Hdrs, Body, Options) ->
-    hackney_pooler:async_request(?POOL_NAME, To, Method, URL, Hdrs, Body,
+    hackney_pooler:async_request(pool(), To, Method, URL, Hdrs, Body,
                                  Options, available_worker).
 
 is_async() ->
     case get(aws_async_request) of
         undefined -> false;
         To -> To
+    end.
+
+pool() ->
+    case get(aws_pool) of
+        undefined -> ?POOL_NAME;
+        PoolName -> PoolName
     end.
