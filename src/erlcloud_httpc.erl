@@ -17,11 +17,29 @@ request(URL, Method, Hdrs, Body, Timeout, Config) ->
     Options = [{recv_timeout, Timeout},
                {connect_timeout, Timeout}],
 
-    case hackney_pooler:request(?POOL_NAME, Method, URL, Hdrs, Body, Options, available_worker, infinity) of
+    case is_async() of
+        false -> do_sync_request(URL, Method, Hdrs, Body, Options);
+        To -> do_async_request(To, URL, Method, Hdrs, Body, Options)
+    end.
+
+
+do_sync_request(URL, Method, Hdrs, Body, Options) ->
+    case hackney_pooler:request(?POOL_NAME, Method, URL, Hdrs, Body, Options,
+                                available_worker, infinity) of
         {ok, Status, RespHeaders, RespBody} ->
             {ok, {{Status, <<>>}, RespHeaders, RespBody}};
         {ok, Status, RespHeaders} ->
             {ok, {{Status, <<>>}, RespHeaders, <<>>}};
         Error ->
             Error
+    end.
+
+do_async_request(To, URL, Method, Hdrs, Body, Options) ->
+    hackney_pooler:async_request(?POOL_NAME, To, URL, Method, Hdrs, Body,
+                                 Options, available_worker).
+
+is_async() ->
+    case get(aws_async_request) of
+        undefined -> false;
+        To -> To
     end.
