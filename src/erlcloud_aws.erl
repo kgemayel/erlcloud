@@ -365,5 +365,5 @@ do_async(F, To) ->
     try
         F()
     after
-        erlang:delete(aws_async_request)
+        erlang:erase(aws_async_request)
     end.
