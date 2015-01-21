@@ -244,6 +244,7 @@ port_to_str(Port) when is_list(Port) ->
 %% Extract the body and do error handling on the return of a httpc:request call.
 http_body(Return) ->
     case http_headers_body(Return) of
+        ok -> ok;
         {ok, {_, Body}} ->
             {ok, Body};
         {error, Reason} ->
