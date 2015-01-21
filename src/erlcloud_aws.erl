@@ -10,7 +10,7 @@
          request_to_return/1,
          sign_v4/5]).
 
-export([do_async/1, do_async/2]).
+-export([do_async/1, do_async/2]).
 
 -include("erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
