@@ -53,6 +53,8 @@ aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
     aws_request(Method, undefined, Host, undefined, Path, Params, AccessKeyID, SecretAccessKey).
 aws_request(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
     case aws_request2(Method, Protocol, Host, Port, Path, Params, Config) of
+        ok ->
+            ok;
         {ok, Body} ->
             Body;
         {error, Reason} ->
