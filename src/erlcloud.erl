@@ -9,7 +9,7 @@ start() ->
     %% start pools
     application:ensure_all_started(hackney_pooler),
     lists:foreach(fun({PoolName, Config}) ->
-                          PoolSize = prolists:get_valuev(workers, Config, 50),
+                          PoolSize = proplists:get_value(workers, Config, 50),
                           MaxConn = proplists:get_value(maxconn, Config, 50),
                           Concurrency = proplists:get_value(concurrency, Config, 50),
                           PoolConfig = [{concurrency, Concurrency},
