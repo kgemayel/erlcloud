@@ -373,7 +373,7 @@ send_async_message(QueueName, MessageBody, DelaySeconds, Config)
        DelaySeconds =:= none ->
     erlcloud_aws:do_async(
       fun() ->
-              sqs_xml_request(Config, QueueName,  "SendMessage",
+              sqs_request(Config, QueueName,  "SendMessage",
                               [{"MessageBody", MessageBody},
                                {"DelaySeconds", DelaySeconds}])
       end).
