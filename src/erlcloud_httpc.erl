@@ -35,7 +35,7 @@ do_sync_request(URL, Method, Hdrs, Body, Options) ->
     end.
 
 do_async_request(To, URL, Method, Hdrs, Body, Options) ->
-    hackney_pooler:async_request(?POOL_NAME, To, URL, Method, Hdrs, Body,
+    hackney_pooler:async_request(?POOL_NAME, To, Method, URL, Hdrs, Body,
                                  Options, available_worker).
 
 is_async() ->
