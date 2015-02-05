@@ -24,7 +24,7 @@ request(URL, Method, Hdrs, Body, Timeout, Config) ->
 
 
 do_sync_request(URL, Method, Hdrs, Body, Options) ->
-    case hackney_pooler:request(?POOL_NAME, Method, URL, Hdrs, Body, Options,
+    case hackney_pooler:request(pool(), Method, URL, Hdrs, Body, Options,
                                 available_worker, infinity) of
         {ok, Status, RespHeaders, RespBody} ->
             {ok, {{Status, <<>>}, RespHeaders, RespBody}};
