@@ -15,7 +15,8 @@
 
 request(URL, Method, Hdrs, Body, Timeout, Config) ->
     Options = [{recv_timeout, Timeout},
-               {connect_timeout, Timeout}],
+               {connect_timeout, Timeout},
+               {reuse_sessions, false}],
 
     case is_async() of
         false -> do_sync_request(URL, Method, Hdrs, Body, Options);
