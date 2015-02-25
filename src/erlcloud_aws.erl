@@ -100,7 +100,7 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
 
 aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
     UProtocol = case Protocol of
-        undefined -> "https://";
+        undefined -> "http://";
         _ -> [Protocol, "://"]
     end,
 
