@@ -12,17 +12,21 @@
 -export([request/6]).
 
 -define(POOL_NAME, erlcloud_pool).
--define(HIBERNATE_AFTER, 200).
+-define(HIBERNATE_AFTER, 1000).
 
 request(URL, Method, Hdrs, Body, Timeout, Config) ->
     %% set ssl options. We check the certificate using latest roots, and
     %% hibernate the connections after ?HIBERNATE_AFTER time to reduce the
     %% memory usage.
     CACertFile =  filename:join(hackney_util:privdir(), "ca-bundle.crt"),
+    T = case application:get_env(erlcloud, hibernate_after) of
+            {ok, T0} -> T0;
+            undefined -> ?HIBERNATE_AFTER
+        end,
     SSLOptions = [{cacertfile, CACertFile },
                   {verify, verify_peer},
                   {depth, 99},
-                  {hibernate_after, ?HIBERNATE_AFTER}],
+                  {hibernate_after, T}],
 
     %% connection options.
     Options = [{recv_timeout, Timeout},
