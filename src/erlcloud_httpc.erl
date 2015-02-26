@@ -12,7 +12,7 @@
 -export([request/6]).
 
 -define(POOL_NAME, erlcloud_pool).
--define(HIBENATE_AFTER, 200).
+-define(HIBERNATE_AFTER, 200).
 
 request(URL, Method, Hdrs, Body, Timeout, Config) ->
     %% set ssl options. We check the certificate using latest roots, and
