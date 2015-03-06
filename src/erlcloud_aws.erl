@@ -100,13 +100,18 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
 
 aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
     UProtocol = case Protocol of
-        undefined -> "http://";
+        undefined -> "https://";
         _ -> [Protocol, "://"]
     end,
-
-    URL = case Port of
+    PreUrl = case Port of
         undefined -> [UProtocol, Host, Path];
         _ -> [UProtocol, Host, $:, port_to_str(Port), Path]
+    end,
+    URL = case application:get_env(erlcloud, proxy, undefined) of
+        undefined ->
+            PreUrl;
+        Proxy ->
+            [Proxy | PreUrl]
     end,
 
     %% Note: httpc MUST be used with {timeout, timeout()} option
