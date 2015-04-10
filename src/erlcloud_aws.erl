@@ -14,7 +14,7 @@
 -export([set_pool/0, set_pool/1]).
 
 -include("erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud_aws.hrl").
 
 -record(metadata_credentials,
         {access_key_id :: string(),
@@ -98,7 +98,7 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
 
     aws_request_form(Method, Protocol, Host, Port, Path, Query, [], Config).
 
-aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
+aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers0, Config) ->
     UProtocol = case Protocol of
         undefined -> "https://";
         _ -> [Protocol, "://"]
@@ -109,23 +109,33 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
         _ -> [UProtocol, Host, $:, port_to_str(Port), Path]
     end,
 
-    %% Note: httpc MUST be used with {timeout, timeout()} option
-    %%       Many timeout related failures is observed at prod env
-    %%       when library is used in 24/7 manner
-    Response =
-        case Method of
+    AWSRequest0 = #aws_request{
+                     service = undefined,
+                     method = Method
+                    },
+
+    AWSRequest = case Method of
             get ->
-                Req = lists:flatten([URL, $?, Form]),
-                erlcloud_httpc:request(
-                  Req, get, Headers, <<>>, Config#aws_config.timeout, Config);
+                AWSRequest0#aws_request{
+                  uri = lists:flatten([URL, $?, Form]),
+                  request_headers = Headers0,
+                  request_body = <<>>
+                 };
             _ ->
-                erlcloud_httpc:request(
-                  lists:flatten(URL), Method,
-                  [{<<"content-type">>, <<"application/x-www-form-urlencoded; charset=utf-8">>} | Headers],
-                  list_to_binary(Form), Config#aws_config.timeout, Config)
+                AWSRequest0#aws_request{
+                  uri = lists:flatten(URL),
+                  request_headers = [{<<"content-type">>, <<"application/x-www-form-urlencoded; charset=utf-8">>} | Headers0],
+                  request_body = list_to_binary(Form)
+                 }
         end,
 
-    http_body(Response).
+    RequestResult = erlcloud_retry:request(Config, AWSRequest, fun erlcloud_retry:default_result/1),
+    case request_to_return(RequestResult) of
+        {ok, {_RespHeaders, RespBody}} ->
+            {ok, RespBody};
+        Error ->
+            Error
+    end.
 
 param_list([], _Key) -> [];
 param_list(Values, Key) when is_tuple(Key) ->

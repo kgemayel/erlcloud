@@ -17,47 +17,32 @@
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 
-%% Helpers
--export([backoff/1, 
+%% Request API
+-export([request/3]).
+
+%% Retry handlers
+-export([
          no_retry/1,
          default_retry/1, default_retry/2
         ]).
--export_type([should_retry/0, retry_fun/0]).
+
+%% Result handlers
+-export([
+         default_result/1
+        ]).
 
 -type should_retry() :: {retry | error, #aws_request{}}.
 -type retry_fun() :: fun((#aws_request{}) -> should_retry()).
+-export_type([should_retry/0, retry_fun/0]).
 
-%% Internal impl api
--export([request/3]).
-
-%% Error returns maintained for backwards compatibility
--spec no_retry(#aws_request{}) -> should_retry().
-no_retry(Request) ->
-    {error, Request}.
-
-%% Sleep after an attempt
--spec backoff(pos_integer()) -> ok.
-backoff(1) -> ok;
-backoff(Attempt) ->
-    timer:sleep(random:uniform((1 bsl (Attempt - 1)) * 100)).
-
+%% Default number of retry attempts
 %% Currently matches DynamoDB retry
 %% It's likely this is too many retries for other services
--define(NUM_ATTEMPTS, 10).
+-define(RETRY_ATTEMPTS, 10).
 
--spec default_retry(#aws_request{}) -> should_retry().
-default_retry(Request) ->
-    default_retry(Request, ?NUM_ATTEMPTS).
-
--spec default_retry(#aws_request{}, integer()) -> should_retry().
-default_retry(#aws_request{attempt = Attempt} = Request, MaxAttempts) 
-  when Attempt >= MaxAttempts ->
-    {error, Request};
-default_retry(#aws_request{should_retry = false} = Request, _) ->
-    {error, Request};
-default_retry(#aws_request{attempt = Attempt} = Request, _) ->
-    backoff(Attempt),
-    {retry, Request}.
+%% -----------------------------------------------------------------
+%% Request processing
+%% -----------------------------------------------------------------
 
 request(Config, #aws_request{attempt = 0} = Request, ResultFun) ->
     request_and_retry(Config, ResultFun, {retry, Request}).
@@ -97,3 +82,45 @@ request_and_retry(Config, ResultFun, {retry, Request}) ->
                          httpc_error_reason = Reason},
             request_and_retry(Config, ResultFun, RetryFun(Request4))
     end.
+
+%% -----------------------------------------------------------------
+%% Retry handlers
+%% -----------------------------------------------------------------
+
+%% Error returns maintained for backwards compatibility
+-spec no_retry(#aws_request{}) -> should_retry().
+no_retry(Request) ->
+    {error, Request}.
+
+-spec default_retry(#aws_request{}) -> should_retry().
+default_retry(Request) ->
+    default_retry(Request, ?RETRY_ATTEMPTS).
+
+-spec default_retry(#aws_request{}, integer()) -> should_retry().
+default_retry(#aws_request{attempt = Attempt} = Request, MaxAttempts) 
+  when Attempt >= MaxAttempts ->
+    {error, Request};
+default_retry(#aws_request{should_retry = false} = Request, _) ->
+    {error, Request};
+default_retry(#aws_request{attempt = Attempt} = Request, _) ->
+    erlcloud_util:backoff(Attempt),
+    {retry, Request}.
+
+%% -----------------------------------------------------------------
+%% Result handlers
+%% -----------------------------------------------------------------
+
+default_result(#aws_request{response_type = ok} = Request) ->
+    Request;
+default_result(#aws_request{response_type = error,
+                           error_type = aws,
+                           response_status = Status} = Request) when
+      Status >= 500 ->
+    Request#aws_request{should_retry = true};
+default_result(#aws_request{response_type = error, error_type = aws} = Request) ->
+    Request#aws_request{should_retry = false}.
+
+%% -----------------------------------------------------------------
+%% Internal functions
+%% -----------------------------------------------------------------
+

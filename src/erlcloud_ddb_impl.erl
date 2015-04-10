@@ -61,8 +61,7 @@
 -include("erlcloud_ddb2.hrl").
 
 %% Helpers
--export([backoff/1, 
-         retry/1, retry/2,
+-export([retry/1, retry/2,
          request_id_from_error/1,
          error_reason2/1
         ]).
@@ -103,12 +102,6 @@ request(Config0, Operation, Json) ->
 
 -define(NUM_ATTEMPTS, 10).
 
-%% Sleep after an attempt
--spec backoff(pos_integer()) -> ok.
-backoff(1) -> ok;
-backoff(Attempt) ->
-    timer:sleep(random:uniform((1 bsl (Attempt - 1)) * 100)).
-
 %% HTTPC timeout for a request
 timeout(1, _) ->
     %% Shorter timeout on first request. This is to avoid long (5s) failover when first DDB
@@ -130,7 +123,7 @@ timeout(_, Config) ->
 retry(Attempt, Reason) when Attempt >= ?NUM_ATTEMPTS ->
     {error, Reason};
 retry(Attempt, _) ->
-    backoff(Attempt),
+    erlcloud_util:backoff(Attempt),
     {attempt, Attempt + 1}.
 
 -spec retry(#ddb2_error{}) -> attempt().
@@ -139,7 +132,7 @@ retry(#ddb2_error{attempt = Attempt} = Error) when Attempt >= ?NUM_ATTEMPTS ->
 retry(#ddb2_error{should_retry = false} = Error) ->
     {error, Error#ddb2_error.reason};
 retry(#ddb2_error{attempt = Attempt}) ->
-    backoff(Attempt),
+    erlcloud_util:backoff(Attempt),
     {attempt, Attempt + 1}.
 
 -spec request_id_from_error(#ddb2_error{}) -> string().

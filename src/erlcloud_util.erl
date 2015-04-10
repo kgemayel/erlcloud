@@ -1,6 +1,7 @@
 -module(erlcloud_util).
 -export([sha_mac/2, sha256_mac/2,
          md5/1, sha256/1]).
+-export([backoff/1]).
 
 sha_mac(K, S) ->
     try
@@ -35,6 +36,12 @@ md5(V) ->
         crypto:hash(md5, V)
     catch
         _:_ ->
-            crypto:md5(V)
+            crypto:hash(md5, V)
     end.
-     
+
+%% Sleep after an attempt
+-spec backoff(pos_integer()) -> ok.
+backoff(1) -> ok;
+backoff(Attempt) ->
+    timer:sleep(random:uniform((1 bsl (Attempt - 1)) * 100)).
+

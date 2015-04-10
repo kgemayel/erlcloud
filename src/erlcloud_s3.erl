@@ -990,18 +990,8 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Hea
                          request_headers = Headers2,
                          request_body = Body}
                end,
-    Request3 = erlcloud_retry:request(Config, Request2, fun s3_result_fun/1),
+    Request3 = erlcloud_retry:request(Config, Request2, fun erlcloud_retry:default_result/1),
     erlcloud_aws:request_to_return(Request3).
-
-s3_result_fun(#aws_request{response_type = ok} = Request) ->
-    Request;
-s3_result_fun(#aws_request{response_type = error, 
-                           error_type = aws, 
-                           response_status = Status} = Request) when
-      Status >= 500 ->
-    Request#aws_request{should_retry = true};
-s3_result_fun(#aws_request{response_type = error, error_type = aws} = Request) ->
-    Request#aws_request{should_retry = false}.
 
 make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
                    Host, Resource, Subresource, Params) ->
