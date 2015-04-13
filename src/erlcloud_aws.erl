@@ -106,11 +106,10 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers0, Config) ->
 
     URL = case Port of
         undefined -> [UProtocol, Host, Path];
-        _ -> [UProtocol, Host, $:, port_to_str(Port), Path]
+        _ -> [UProtocol, Host, erlcloud_util:port_to_str(Port), Path]
     end,
 
     AWSRequest0 = #aws_request{
-                     service = undefined,
                      method = Method
                     },
 
@@ -125,17 +124,22 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers0, Config) ->
                 AWSRequest0#aws_request{
                   uri = lists:flatten(URL),
                   request_headers = [{<<"content-type">>, <<"application/x-www-form-urlencoded; charset=utf-8">>} | Headers0],
-                  request_body = list_to_binary(Form)
+                  request_body = ensure_binary(Form)
                  }
         end,
 
-    RequestResult = erlcloud_retry:request(Config, AWSRequest, fun erlcloud_retry:default_result/1),
+    RequestResult = erlcloud_retry:request(Config, AWSRequest),
     case request_to_return(RequestResult) of
         {ok, {_RespHeaders, RespBody}} ->
             {ok, RespBody};
         Error ->
             Error
     end.
+
+ensure_binary(Bin) when is_binary(Bin) ->
+    Bin;
+ensure_binary(List) when is_list(List) ->
+    list_to_binary(List).
 
 param_list([], _Key) -> [];
 param_list(Values, Key) when is_tuple(Key) ->
@@ -246,11 +250,6 @@ get_credentials_from_metadata(Config) ->
                     {ok, Record}
             end
     end.
-
-port_to_str(Port) when is_integer(Port) ->
-    integer_to_list(Port);
-port_to_str(Port) when is_list(Port) ->
-    Port.
 
 -spec http_body({ok, tuple()} | {error, term()})
                -> {ok, string() | binary()} | {error, tuple()}.

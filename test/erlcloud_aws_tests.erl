@@ -32,7 +32,7 @@ request_default_test(_) ->
     test_url(https, "host", 443, "/", Url).
 
 request_prot_host_port_str_test(_) ->
-    ok = erlcloud_aws:aws_request(get, "http", "host1", "9999", "/path1", [], "id", "key"),
+    ok = erlcloud_aws:aws_request(get, "http", "host1", ":9999", "/path1", [], "id", "key"),
     Url = get_url_from_history(meck:history(erlcloud_httpc)),
     test_url(http, "host1", 9999, "/path1", Url).
 

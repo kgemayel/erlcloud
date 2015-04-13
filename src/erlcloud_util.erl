@@ -1,7 +1,7 @@
 -module(erlcloud_util).
 -export([sha_mac/2, sha256_mac/2,
          md5/1, sha256/1]).
--export([backoff/1]).
+-export([port_to_str/1]).
 
 sha_mac(K, S) ->
     try
@@ -39,9 +39,13 @@ md5(V) ->
             crypto:hash(md5, V)
     end.
 
-%% Sleep after an attempt
--spec backoff(pos_integer()) -> ok.
-backoff(1) -> ok;
-backoff(Attempt) ->
-    timer:sleep(random:uniform((1 bsl (Attempt - 1)) * 100)).
+-spec port_to_str(pos_integer() | string() | undefined) -> string().
+port_to_str(Port) when is_integer(Port) ->
+    [$:, integer_to_list(Port)];
+port_to_str([$: | _] = PortStr) ->
+    PortStr;
+port_to_str([_ | _] = PortStr) ->
+    [$: | PortStr];
+port_to_str(_) ->
+    "".
 

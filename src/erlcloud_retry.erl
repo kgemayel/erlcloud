@@ -18,7 +18,7 @@
 -include("erlcloud_aws.hrl").
 
 %% Request API
--export([request/3]).
+-export([request/2]).
 
 %% Retry handlers
 -export([
@@ -33,7 +33,8 @@
 
 -type should_retry() :: {retry | error, #aws_request{}}.
 -type retry_fun() :: fun((#aws_request{}) -> should_retry()).
--export_type([should_retry/0, retry_fun/0]).
+-type result_fun() :: fun((#aws_request{}) -> #aws_request{}).
+-export_type([should_retry/0, retry_fun/0, result_fun/0]).
 
 %% Default number of retry attempts
 %% Currently matches DynamoDB retry
@@ -44,9 +45,12 @@
 %% Request processing
 %% -----------------------------------------------------------------
 
-request(Config, #aws_request{attempt = 0} = Request, ResultFun) ->
-    request_and_retry(Config, ResultFun, {retry, Request}).
+-spec request(#aws_config{}, #aws_request{}) -> #aws_request{} | {error, term()}.
+request(Config, #aws_request{attempt = 0} = Request) ->
+    request_and_retry(Config, Config#aws_config.retry_result, {retry, Request}).
 
+-spec request_and_retry(#aws_config{}, result_fun(), {error | retry, #aws_request{}}) ->
+    #aws_request{} | {error, term()}.
 request_and_retry(_, _, {error, Request}) ->
     Request;
 request_and_retry(Config, ResultFun, {retry, Request}) ->
@@ -59,7 +63,8 @@ request_and_retry(Config, ResultFun, {retry, Request}) ->
       } = Request,
     Request2 = Request#aws_request{attempt = Attempt + 1},
     RetryFun = Config#aws_config.retry,
-    case erlcloud_httpc:request(URI, Method, Headers, Body, Config#aws_config.timeout, Config) of
+    case erlcloud_httpc:request(URI, Method, Headers, Body,
+                                parse_timeout(Attempt + 1, Config#aws_config.timeout), Config) of
         {ok, {{Status, StatusLine}, ResponseHeaders, ResponseBody}} ->
             Request3 = Request2#aws_request{
                          response_type = if Status >= 200, Status < 300 -> ok; true -> error end,
@@ -103,13 +108,14 @@ default_retry(#aws_request{attempt = Attempt} = Request, MaxAttempts)
 default_retry(#aws_request{should_retry = false} = Request, _) ->
     {error, Request};
 default_retry(#aws_request{attempt = Attempt} = Request, _) ->
-    erlcloud_util:backoff(Attempt),
+    backoff(Attempt),
     {retry, Request}.
 
 %% -----------------------------------------------------------------
 %% Result handlers
 %% -----------------------------------------------------------------
 
+-spec default_result(#aws_request{}) -> #aws_request{}.
 default_result(#aws_request{response_type = ok} = Request) ->
     Request;
 default_result(#aws_request{response_type = error,
@@ -123,4 +129,18 @@ default_result(#aws_request{response_type = error, error_type = aws} = Request) 
 %% -----------------------------------------------------------------
 %% Internal functions
 %% -----------------------------------------------------------------
+
+-spec parse_timeout(pos_integer(), pos_integer() | {pos_integer(), pos_integer()}) -> pos_integer().
+parse_timeout(1, {FirstTimeout, _}) ->
+    FirstTimeout;
+parse_timeout(_, {_, RestTimeout}) ->
+    RestTimeout;
+parse_timeout(_, Timeout) ->
+    Timeout.
+
+%% Sleep after an attempt
+-spec backoff(pos_integer()) -> ok.
+backoff(1) -> ok;
+backoff(Attempt) ->
+    timer:sleep(random:uniform((1 bsl (Attempt - 1)) * 100)).
 
