@@ -1606,7 +1606,7 @@ mturk_request(Config, Operation, Params) ->
                {"AWSAccessKeyId", Config#aws_config.access_key_id},
                {"Signature", Signature}|Params],
 
-    case erlcloud_aws:aws_request2(post, "https://", Config#aws_config.mturk_host, undefined, "/", QParams, Config) of
+    case erlcloud_aws:aws_request2(post, "https://", Config#aws_config.mturk_host, undefined, "/", QParams, erlcloud_retry:custom_retry(mturk, Config)) of
         {ok, RespBody} -> binary_to_list(RespBody);
         Error -> Error
     end.

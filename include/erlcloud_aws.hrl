@@ -34,11 +34,11 @@
           % request attempt and the second for the rest
           timeout=10000::timeout()|{timeout(),timeout()},
           cloudtrail_raw_result=false::boolean(),
-          %% Default to not retry failures (for backwards compatability).
-          %% Recommended to be set to default_retry to provide recommended retry behavior.
           %% See erlcloud_retry for full documentation.
-          retry=fun erlcloud_retry:default_retry/1::erlcloud_retry:retry_fun(),
-          retry_result=fun erlcloud_retry:default_result/1::erlcloud_retry:result_fun()
+          custom_retry_settings = []::[{Service::atom(), erlcloud_retry:retry_fun()|undefined,
+                                        erlcloud_retry:result_fun()|undefined}],
+          retry_fun=fun erlcloud_retry:default_retry/1::erlcloud_retry:retry_fun(),
+          retry_result_fun=fun erlcloud_retry:default_result/1::erlcloud_retry:result_fun()
          }).
 -type(aws_config() :: #aws_config{}).
 

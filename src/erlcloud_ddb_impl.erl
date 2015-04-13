@@ -59,8 +59,9 @@ request(Config0, Operation, Json) ->
                         ddb_host = Host,
                         ddb_port = Port} = Config1,
             Headers = headers(Config1, Operation, Body),
-            Config2 = process_timeout(Config1#aws_config{ retry_result = fun check_client_error/1 }),
-            case erlcloud_aws:aws_request_form(post, Scheme, Host, Port, "", Body, Headers, Config2) of
+            Config2 = process_timeout(Config1#aws_config{ retry_result_fun = fun check_client_error/1 }),
+            case erlcloud_aws:aws_request_form(post, erlcloud_util:scheme_to_protocol(Scheme), Host, Port, "",
+                                               Body, Headers, erlcloud_retry:custom_retry(ddb, Config2)) of
                 {ok, RespBody} ->
                     %% TODO: check crc
                     {ok, jsx:decode(RespBody)};

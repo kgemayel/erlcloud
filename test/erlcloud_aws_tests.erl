@@ -45,7 +45,8 @@ retry_handling_no_retry() ->
     Response = {ok, {{500, "Internal Server Error"}, [], <<"TestBody">>}},
     meck:expect(erlcloud_httpc, request, httpc_expect(Response)),
     Config = erlcloud_aws:default_config(),
-    Result = erlcloud_aws:aws_request2(get, "https", "host", 11111, "some/path", [], Config),
+    Result = erlcloud_aws:aws_request2(get, "https", "host", 11111, "some/path", [],
+                                       Config#aws_config{retry_fun = fun erlcloud_retry:no_retry/1}),
     ?_assertEqual({error,{http_error,500,"Internal Server Error",<<"TestBody">>}}, Result).
 
 retry_handling_default_retry() ->
@@ -54,7 +55,7 @@ retry_handling_default_retry() ->
     meck:sequence(erlcloud_httpc, request, 6, [Response1, Response2]),
     Config = erlcloud_aws:default_config(),
     Result = erlcloud_aws:aws_request2(get, "https", "host", 11111, "some/path", [],
-                                       Config#aws_config{retry = fun erlcloud_retry:default_retry/1}),
+                                       Config#aws_config{retry_fun = fun erlcloud_retry:default_retry/1}),
     ?_assertEqual({ok, <<"TestBody">>}, Result).
 
 retry_handling_httpc_error() ->
@@ -63,7 +64,7 @@ retry_handling_httpc_error() ->
     meck:sequence(erlcloud_httpc, request, 6, [Response1, Response2]),
     Config = erlcloud_aws:default_config(),
     Result = erlcloud_aws:aws_request2(get, "https", "host", 11111, "some/path", [],
-                                       Config#aws_config{retry = fun erlcloud_retry:default_retry/1}),
+                                       Config#aws_config{retry_fun = fun erlcloud_retry:default_retry/1}),
     ?_assertEqual({ok, <<"TestBody">>}, Result).
 
 % ==================

@@ -157,7 +157,8 @@ request_impl(Method, Operation, Params, Body,
     ApiOperation = lists:flatten(Config#aws_config.cloudtrail_api_prefix, Operation),
     Headers = headers(Config, ApiOperation, Params, Body, ?SERVICE_NAME),
 
-    case erlcloud_aws:aws_request_form(Method, Scheme, Host, Port, "/", Body, Headers, Config) of
+    case erlcloud_aws:aws_request_form(Method, erlcloud_util:scheme_to_protocol(Scheme), Host, Port, "/",
+                                       Body, Headers, erlcloud_retry:custom_retry(cloudtrail, Config)) of
        {ok, RespBody} ->
             case Config#aws_config.cloudtrail_raw_result of
                 true -> {ok, RespBody};

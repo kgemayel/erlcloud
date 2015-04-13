@@ -17,8 +17,8 @@
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 
-%% Request API
--export([request/2]).
+%% API
+-export([request/2, custom_retry/2]).
 
 %% Retry handlers
 -export([
@@ -42,12 +42,12 @@
 -define(RETRY_ATTEMPTS, 10).
 
 %% -----------------------------------------------------------------
-%% Request processing
+%% API
 %% -----------------------------------------------------------------
 
 -spec request(#aws_config{}, #aws_request{}) -> #aws_request{} | {error, term()}.
 request(Config, #aws_request{attempt = 0} = Request) ->
-    request_and_retry(Config, Config#aws_config.retry_result, {retry, Request}).
+    request_and_retry(Config, Config#aws_config.retry_result_fun, {retry, Request}).
 
 -spec request_and_retry(#aws_config{}, result_fun(), {error | retry, #aws_request{}}) ->
     #aws_request{} | {error, term()}.
@@ -62,7 +62,7 @@ request_and_retry(Config, ResultFun, {retry, Request}) ->
        request_body = Body
       } = Request,
     Request2 = Request#aws_request{attempt = Attempt + 1},
-    RetryFun = Config#aws_config.retry,
+    RetryFun = Config#aws_config.retry_fun,
     case erlcloud_httpc:request(URI, Method, Headers, Body,
                                 parse_timeout(Attempt + 1, Config#aws_config.timeout), Config) of
         {ok, {{Status, StatusLine}, ResponseHeaders, ResponseBody}} ->
@@ -86,6 +86,24 @@ request_and_retry(Config, ResultFun, {retry, Request}) ->
                          error_type = httpc,
                          httpc_error_reason = Reason},
             request_and_retry(Config, ResultFun, RetryFun(Request4))
+    end.
+
+-spec custom_retry(atom(), #aws_config{}) -> #aws_config{}.
+custom_retry(Service, Config) ->
+    case lists:keyfind(Service, 1, Config#aws_config.custom_retry_settings) of
+        false ->
+            Config;
+        {_, RetryFun, ResultFun} ->
+            Config#aws_config{
+              retry_fun = case RetryFun of
+                              undefined -> Config#aws_config.retry_fun;
+                              _ -> RetryFun
+                          end,
+              retry_result_fun = case ResultFun of
+                                     undefined -> Config#aws_config.retry_result_fun;
+                                     _ -> ResultFun
+                                 end
+             }
     end.
 
 %% -----------------------------------------------------------------

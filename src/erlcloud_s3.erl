@@ -990,7 +990,7 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Hea
                          request_headers = Headers2,
                          request_body = Body}
                end,
-    Request3 = erlcloud_retry:request(Config, Request2),
+    Request3 = erlcloud_retry:request(erlcloud_retry:custom_retry(s3, Config), Request2),
     erlcloud_aws:request_to_return(Request3).
 
 make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
