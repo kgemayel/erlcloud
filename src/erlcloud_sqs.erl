@@ -398,11 +398,11 @@ sqs_simple_request(Config, QueueName, Action, Params) ->
 
 sqs_xml_request(Config, QueueName, Action, Params) ->
     erlcloud_aws:aws_request_xml(post, Config#aws_config.sqs_host,
-                                 queue_path(QueueName), [{"Action", Action}, {"Version", ?API_VERSION}|Params], Config).
+                                 queue_path(QueueName), [{"Action", Action}, {"Version", ?API_VERSION}|Params], erlcloud_retry:custom_retry(sqs, Config)).
 
 sqs_request(Config, QueueName, Action, Params) ->
     erlcloud_aws:aws_request(post, Config#aws_config.sqs_host,
-                             queue_path(QueueName), [{"Action", Action}, {"Version", ?API_VERSION}|Params], Config).
+                             queue_path(QueueName), [{"Action", Action}, {"Version", ?API_VERSION}|Params], erlcloud_retry:custom_retry(sqs, Config)).
 
 queue_path([$/|_] = QueueName) -> QueueName;
 queue_path(["http"|_] = URL) ->
