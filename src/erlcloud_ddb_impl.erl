@@ -266,7 +266,13 @@ headers(Config, Operation, Body) ->
     erlcloud_aws:sign_v4(Config, Headers, Body, Region, "dynamodb").
 
 url(#aws_config{ddb_scheme = Scheme, ddb_host = Host} = Config) ->
-    lists:flatten([Scheme, Host, port_spec(Config)]).
+    case application:get_env(erlcloud, proxy) of
+        {ok, Value} ->
+            lists:flatten([Value, "https/", Host, port_spec(Config), "/"]);
+        _ ->
+            lists:flatten([Scheme, Host, port_spec(Config), "/"])
+    end.
+    
 
 port_spec(#aws_config{ddb_port=80}) ->
     "";
