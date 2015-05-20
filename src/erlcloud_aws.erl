@@ -279,6 +279,10 @@ http_headers_body({error, Reason}) ->
 
 %% Convert an aws_request record to return value as returned by http_headers_body
 request_to_return(#aws_request{response_type = ok,
+                               response_headers = undefined,
+                               response_body = undefined}) ->
+    ok;
+request_to_return(#aws_request{response_type = ok,
                                response_headers = Headers,
                                response_body = Body}) ->
     {ok, {Headers, Body}};

@@ -80,6 +80,8 @@ request_and_retry(Config, ResultFun, {retry, Request}) ->
                 error ->
                     request_and_retry(Config, ResultFun, RetryFun(Request4))
             end;
+        ok ->
+            Request2#aws_request{ response_type = ok, error_type = aws };
         {error, Reason} ->
             Request4 = Request2#aws_request{
                          response_type = error,
