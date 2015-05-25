@@ -16,6 +16,9 @@
                   hackney_pooler]},
   {included_applications, [idna]},
   {modules, []},
-  {env, [{pools, [{erlcloud_pool, [{pool_size, 500}]}]}]}
+  {mod, {erlcloud_app, []}},
+  {env, [
+         {pools, [{erlcloud_pool, [{pool_size, 500}]}]}
+        ]}
  ]
 }.

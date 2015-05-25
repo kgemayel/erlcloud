@@ -25,20 +25,10 @@ sha256_mac(K, S) ->
     end.
 
 sha256(V) ->
-    try
-        crypto:hash(sha256, V)
-    catch
-        _:_ ->
-            crypto:sha256(V)
-    end.
+    crypto:hash(sha256, V).
 
 md5(V) ->
-    try
-        crypto:hash(md5, V)
-    catch
-        _:_ ->
-            crypto:hash(md5, V)
-    end.
+    crypto:hash(md5, V).
 
 -spec port_to_str(pos_integer() | string() | undefined) -> string().
 port_to_str(Port) when is_integer(Port) ->
