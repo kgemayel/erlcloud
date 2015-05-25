@@ -47,12 +47,15 @@
 -spec request(#aws_config{}, #aws_request{}) -> #aws_request{} | {error, term()}.
 request(Config, #aws_request{attempt = 0} = Request) ->
     case pop_async() of
-        false -> request_and_retry(Config, Config#aws_config.retry_result_fun, {retry, Request});
-        true -> erlcloud_retry_sup:start_retry_handler(Config, Request)
+        false ->
+            log_request_result(
+              request_and_retry(Config, Config#aws_config.retry_result_fun, {retry, Request}));
+        true ->
+            erlcloud_retry_sup:start_retry_handler(Config, Request)
     end.
 
 -spec request_and_retry(#aws_config{}, result_fun(), {error | retry, #aws_request{}}) ->
-    #aws_request{} | {error, term()}.
+    #aws_request{}.
 request_and_retry(_, _, {error, Request}) ->
     Request;
 request_and_retry(Config, ResultFun, {retry, Request}) ->
@@ -176,4 +179,11 @@ pop_async() ->
         undefined -> false;
         IsAsync -> IsAsync
     end.
+
+-spec log_request_result(#aws_request{}) -> #aws_request{}.
+log_request_result(#aws_request{ response_type = ok } = Request) ->
+    Request;
+log_request_result(FailedRequest) ->
+    lager:error("Failed AWS request: ~p", [FailedRequest]),
+    FailedRequest.
 

@@ -30,7 +30,10 @@ start(_StartType, _StartArgs) ->
                           hackney_pooler:new_pool(PoolName, PoolConfig)
                   end, application:get_env(erlcloud, pools, ?DEFAULT_POOLS)),
     %% start the main supervisor
-    erlcloud_sup:start_link().
+    case erlcloud_sup:start_link() of
+        {error, {already_started, Pid}} -> {ok, Pid};
+        Result -> Result
+    end.
 
 -spec stop(term()) -> no_return().
 stop(_State) ->
