@@ -17,7 +17,6 @@
                                                  {error, term()}.
 start(_StartType, _StartArgs) ->
     %% start pools
-    application:ensure_all_started(hackney_pooler),
     lists:foreach(fun({PoolName, Config}) ->
                           PoolSize = proplists:get_value(workers, Config, 50),
                           MaxConn = proplists:get_value(maxconn, Config, 50),
