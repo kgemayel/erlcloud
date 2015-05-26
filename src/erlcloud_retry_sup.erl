@@ -34,7 +34,7 @@ start_retry_handler(Config, Request) ->
                                     [supervisor:child_spec()]}}
                               | ignore.
 init([]) ->
-    ChildSpec = {undefined, {erlcloud_retry, request, []}, transient,
+    ChildSpec = {undefined, {erlcloud_retry, start_link, []}, transient,
                  5000, worker, [erlcloud_retry]},
     {ok, {{simple_one_for_one, 5, 10}, [ChildSpec]}}.
 

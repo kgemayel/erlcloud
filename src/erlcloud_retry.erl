@@ -176,8 +176,8 @@ backoff(Attempt) ->
 -spec pop_async() -> boolean().
 pop_async() ->
     case erase(aws_async_request) of
-        undefined -> false;
-        IsAsync -> IsAsync
+        true -> true;
+        _ -> false
     end.
 
 -spec log_request_result(#aws_request{}) -> #aws_request{}.

@@ -295,7 +295,9 @@ request_to_return(#aws_request{response_type = error,
                                response_status = Status,
                                response_status_line = StatusLine,
                                response_body = Body}) ->
-    {error, {http_error, Status, StatusLine, Body}}.
+    {error, {http_error, Status, StatusLine, Body}};
+request_to_return(ok) ->
+    {ok, {[], <<>>}}. %% Simulating return on async request
 
 %% http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
 %% TODO additional parameters - currently only supports what is needed for DynamoDB
@@ -375,10 +377,10 @@ authorization(Config, CredentialScope, SignedHeaders, Signature) ->
 
 
 do_async(F) ->
-    do_async(F, nil).
+    do_async(F, true).
 
-do_async(F, To) ->
-    erlang:put(aws_async_request, To),
+do_async(F, IsAsync) ->
+    erlang:put(aws_async_request, IsAsync),
     try
         F()
     after
