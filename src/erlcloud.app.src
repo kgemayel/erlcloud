@@ -14,8 +14,7 @@
                   xmerl,
                   inets,
                   jsx,
-                  hackney_pooler]},
-  {included_applications, [idna]},
+                  fusco]},
   {modules, []},
   {mod, {erlcloud_app, []}},
   {env, [
