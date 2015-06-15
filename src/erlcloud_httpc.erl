@@ -56,13 +56,13 @@ new_pool(PoolName, PoolBase) ->
     FuscoOpts = [{connect_timeout, 30000}],
     PoolSize = ?DEFAULT_POOL_SIZE,
     ChildMods = [fusco],
-    ChildMFA = {fusco, start_link, [PoolBase, FuscoOpts]},
+    ChildMFA = {fusco, start_link},
     already_started_is_ok(
       supervisor:start_child(
         ejabberd_sup,
         {{libon_fusco_sup, PoolName},
          {cuesport, start_link,
-          [PoolName, PoolSize, ChildMods, ChildMFA]},
+          [PoolName, PoolSize, ChildMods, ChildMF, {for_all, [PoolBase, FuscoOpts]}]},
          transient, 2000, supervisor, [cuesport | ChildMods]})).
 
 already_started_is_ok({ok, _Pid}) -> ok;
