@@ -955,7 +955,8 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Hea
     EscapedPath = erlcloud_http:url_encode_loose(Path),
     Authorization = make_authorization(Config, Method, ContentMD5, ContentType,
                                        Date, AmzHeaders, Host, EscapedPath, Subresource, Params),
-    RequestHeaders = [{"date", Date}, {"authorization", Authorization}|FHeaders] ++
+    RequestHeaders = [{<<"date">>, iolist_to_binary(Date)},
+                      {<<"Authorization">>, iolist_to_binary(Authorization)}|FHeaders] ++
         case ContentMD5 of
             "" -> [];
             _ -> [{"content-md5", binary_to_list(ContentMD5)}]

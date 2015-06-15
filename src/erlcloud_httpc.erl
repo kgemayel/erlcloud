@@ -17,12 +17,13 @@
 -define(DEFAULT_POOL_SIZE, 10).
 -define(DEFAULT_POOL_BASE_NAME, "erlcloud_pool_").
 
-request(URL, Method, Hdrs, Body, Timeout, _Config) ->
+request(URL, Method0, Hdrs, Body, Timeout, _Config) ->
+    Method = normalise_method(Method0),
     FuscoURL = fusco_lib:parse_url(URL),
-    case fusco:request(get_worker(FuscoURL), FuscoURL#fusco_url.path,
-                       Method, Hdrs, Body, 0, Timeout) of
+    case fusco:request(get_worker(FuscoURL), list_to_binary(FuscoURL#fusco_url.path),
+                       Method, normalise_headers(Hdrs), Body, 0, Timeout) of
         {ok, {{Status, StatusLine}, RespHeaders, RespBody, _, _}} ->
-            {ok, {{Status, StatusLine}, RespHeaders, RespBody}};
+            {ok, {{binary_to_integer(Status), StatusLine}, RespHeaders, RespBody}};
         Error ->
             Error
     end.
@@ -64,6 +65,13 @@ new_pool(PoolName, PoolBase) ->
           [PoolName, PoolSize, ChildMods, ChildMFA]},
          transient, 2000, supervisor, [cuesport | ChildMods]})).
 
-already_started_is_ok(ok) -> ok;
+already_started_is_ok({ok, _Pid}) -> ok;
 already_started_is_ok({error, {already_started, _}}) -> ok.
+
+normalise_method(Method) ->
+    string:to_upper(atom_to_list(Method)).
+
+normalise_headers(Headers) ->
+    Headers1 = [ {iolist_to_binary(Key), iolist_to_binary(Value)} || {Key, Value} <- Headers ],
+    [ {<<"Connection">>, <<"keep-alive">>} | Headers1 ].
 

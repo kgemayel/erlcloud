@@ -315,7 +315,7 @@ sign_v4(Config, Headers, Payload, Region, Service) ->
     SigningKey = signing_key(Config, Date, Region, Service),
     Signature = base16(erlcloud_util:sha256_mac( SigningKey, ToSign)),
     Authorization = authorization(Config, CredentialScope, SignedHeaders, Signature),
-    [{"Authorization", lists:flatten(Authorization)} | Headers2].
+    [{<<"Authorization">>, iolist_to_binary(Authorization)} | Headers2].
 
 iso_8601_basic_time() ->
     {{Year,Month,Day},{Hour,Min,Sec}} = calendar:now_to_universal_time(os:timestamp()),
