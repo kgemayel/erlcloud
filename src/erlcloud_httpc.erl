@@ -56,7 +56,7 @@ new_pool(PoolName, PoolBase) ->
     FuscoOpts = [{connect_timeout, 30000}],
     PoolSize = ?DEFAULT_POOL_SIZE,
     ChildMods = [fusco],
-    ChildMFA = {fusco, start_link},
+    ChildMF = {fusco, start_link},
     already_started_is_ok(
       supervisor:start_child(
         ejabberd_sup,
