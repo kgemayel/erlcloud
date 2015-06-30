@@ -54,7 +54,7 @@ get_worker(#fusco_url{ host = Host, port = Port, is_ssl = IsSSL } = FuscoURL) ->
 
 new_pool(PoolName, PoolBase) ->
     FuscoOpts = [{connect_timeout, 30000}],
-    PoolSize = ?DEFAULT_POOL_SIZE,
+    PoolSize = application:get_env(erlcloud, implicit_pool_size, ?DEFAULT_POOL_SIZE),
     ChildMods = [fusco],
     ChildMF = {fusco, start_link},
     already_started_is_ok(
