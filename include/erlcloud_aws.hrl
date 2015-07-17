@@ -46,7 +46,7 @@
         {
           %% Provided by requesting service
           uri :: string() | binary(),
-          method :: atom(),
+          method :: get | post | put | atom(),
           request_headers :: [{string(), string()}],
           request_body :: binary(),
 

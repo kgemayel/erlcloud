@@ -98,6 +98,10 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
 
     aws_request_form(Method, Protocol, Host, Port, Path, Query, [], Config).
 
+-spec aws_request_form(Method :: get | post | atom(), Protocol :: undefined | iodata(), Host :: iodata(),
+                       Port :: undefined | non_neg_integer() | string(), Path :: iodata(), Form :: iodata(),
+                       Headers0 :: [{binary() | string(), binary() | string()}], Config :: #aws_config{}) ->
+    ok | {ok, binary()} | {error, term()}.
 aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers0, Config) ->
     UProtocol = case Protocol of
         undefined -> "https://";
@@ -116,15 +120,15 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers0, Config) ->
     AWSRequest = case Method of
             get ->
                 AWSRequest0#aws_request{
-                  uri = lists:flatten([URL, $?, Form]),
+                  uri = iolist_to_binary([URL, $?, Form]),
                   request_headers = Headers0,
                   request_body = <<>>
                  };
             _ ->
                 AWSRequest0#aws_request{
-                  uri = lists:flatten(URL),
-                  request_headers = [{<<"content-type">>, <<"application/x-www-form-urlencoded; charset=utf-8">>} | Headers0],
-                  request_body = ensure_binary(Form)
+                  uri = iolist_to_binary([URL]),
+                  request_headers = [{"content-type", "application/x-www-form-urlencoded; charset=utf-8"} | Headers0],
+                  request_body = iolist_to_binary([Form])
                  }
         end,
 
@@ -135,11 +139,6 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers0, Config) ->
         Error ->
             Error
     end.
-
-ensure_binary(Bin) when is_binary(Bin) ->
-    Bin;
-ensure_binary(List) when is_list(List) ->
-    list_to_binary(List).
 
 param_list([], _Key) -> [];
 param_list(Values, Key) when is_tuple(Key) ->
@@ -256,7 +255,6 @@ get_credentials_from_metadata(Config) ->
 %% Extract the body and do error handling on the return of a httpc:request call.
 http_body(Return) ->
     case http_headers_body(Return) of
-        ok -> ok;
         {ok, {_, Body}} ->
             {ok, Body};
         {error, Reason} ->
@@ -267,8 +265,6 @@ http_body(Return) ->
 -spec http_headers_body({ok, tuple()} | {error, term()})
                        -> {ok, {headers(), string() | binary()}} | {error, tuple()}.
 %% Extract the headers and body and do error handling on the return of a httpc:request call.
-http_headers_body(ok) ->
-    ok;
 http_headers_body({ok, {{OKStatus, _StatusLine}, Headers, Body}})
   when OKStatus >= 200, OKStatus =< 299 ->
     {ok, {Headers, Body}};
