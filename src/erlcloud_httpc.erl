@@ -39,18 +39,19 @@ adhoc_request(BaseURL, Path, Method, Hdrs, Body, Timeout) ->
     fusco:disconnect(ConnPid),
     Result.
 
-get_worker(#fusco_url{ host = Host, port = Port, is_ssl = IsSSL } = FuscoURL) ->
-    case get(aws_pool) of
-        undefined ->
-            put(aws_pool, list_to_atom(?DEFAULT_POOL_BASE_NAME ++ Host)),
-            get_worker(FuscoURL);
-        PoolName ->
-            case ets:info(PoolName) of
-                undefined -> new_pool(PoolName, {Host, Port, IsSSL});
-                _ -> ok
-            end,
-            cuesport:get_worker(PoolName)
-    end.
+get_worker(#fusco_url{ host = Host, port = Port, is_ssl = IsSSL }) ->
+    PoolName = case get_pool() of
+                   undefined -> list_to_atom(?DEFAULT_POOL_BASE_NAME ++ Host);
+                   PoolName0 -> PoolName0
+               end,
+    case ets:info(PoolName) of
+        undefined -> new_pool(PoolName, {Host, Port, IsSSL});
+        _ -> ok
+    end,
+    cuesport:get_worker(PoolName).
+
+get_pool() ->
+    get(aws_pool).
 
 new_pool(PoolName, PoolBase) ->
     FuscoOpts = [{connect_timeout, 30000}],
