@@ -59,8 +59,8 @@ new_pool(PoolName, PoolBase) ->
     ChildMF = {fusco, start_link},
     already_started_is_ok(
       supervisor:start_child(
-        ejabberd_sup,
-        {{libon_fusco_sup, PoolName},
+        erlcloud_sup,
+        {{fusco_sup, PoolName},
          {cuesport, start_link,
           [PoolName, PoolSize, ChildMods, ChildMF, {for_all, [PoolBase, FuscoOpts]}]},
          transient, 2000, supervisor, [cuesport | ChildMods]})).
@@ -72,6 +72,5 @@ normalise_method(Method) ->
     string:to_upper(atom_to_list(Method)).
 
 normalise_headers(Headers) ->
-    Headers1 = [ {iolist_to_binary(Key), iolist_to_binary(Value)} || {Key, Value} <- Headers ],
-    [ {<<"Connection">>, <<"keep-alive">>} | Headers1 ].
+    [ {iolist_to_binary(Key), iolist_to_binary(Value)} || {Key, Value} <- Headers ].
 
