@@ -7,29 +7,71 @@
 %%
 %% @end
 -module(erlcloud_httpc).
+
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
--export([request/6]).
+-include_lib("fusco/include/fusco.hrl").
 
--define(POOL_NAME, erlcloud_pool).
+-export([request/6, adhoc_request/6]).
 
-request(URL, Method, Hdrs, Body, Timeout, _Config) ->
-    Options = [{recv_timeout, Timeout},
-               {connect_timeout, Timeout}],
+-define(DEFAULT_POOL_SIZE, 10).
+-define(DEFAULT_POOL_BASE_NAME, "erlcloud_pool_").
 
-    case hackney_pooler:request(pool(), Method, URL, Hdrs, Body, Options,
-                                available_worker, infinity) of
-        {ok, Status, RespHeaders, RespBody} ->
-            {ok, {{Status, <<>>}, RespHeaders, RespBody}};
-        {ok, Status, RespHeaders} ->
-            {ok, {{Status, <<>>}, RespHeaders, <<>>}};
+request(URL, Method0, Hdrs, Body, Timeout, _Config) ->
+    Method = normalise_method(Method0),
+    FuscoURL = fusco_lib:parse_url(URL),
+    case fusco:request(get_worker(FuscoURL), list_to_binary(FuscoURL#fusco_url.path),
+                       Method, normalise_headers(Hdrs), Body, 0, Timeout) of
+        {ok, {{Status, StatusLine}, RespHeaders, RespBody, _, _}} ->
+            {ok, {{binary_to_integer(Status), StatusLine}, RespHeaders, RespBody}};
         Error ->
             Error
     end.
 
-pool() ->
-    case get(aws_pool) of
-        undefined -> ?POOL_NAME;
-        PoolName -> PoolName
-    end.
+adhoc_request(BaseURL, Path, Method, Hdrs, Body, Timeout) ->
+    {ok, ConnPid} = fusco:start(BaseURL, []),
+    Result = case fusco:request(ConnPid, Path, Method, Hdrs, Body, 0, Timeout) of
+                 {ok, {{Status, StatusLine}, RespHeaders, RespBody, _, _}} ->
+                     {ok, {{Status, StatusLine}, RespHeaders, RespBody}};
+                 Error ->
+                     Error
+             end,
+    fusco:disconnect(ConnPid),
+    Result.
+
+get_worker(#fusco_url{ host = Host, port = Port, is_ssl = IsSSL }) ->
+    PoolName = case get_pool() of
+                   undefined -> list_to_atom(?DEFAULT_POOL_BASE_NAME ++ Host);
+                   PoolName0 -> PoolName0
+               end,
+    case ets:info(PoolName) of
+        undefined -> new_pool(PoolName, {Host, Port, IsSSL});
+        _ -> ok
+    end,
+    cuesport:get_worker(PoolName).
+
+get_pool() ->
+    get(aws_pool).
+
+new_pool(PoolName, PoolBase) ->
+    FuscoOpts = [{connect_timeout, 30000}],
+    PoolSize = application:get_env(erlcloud, implicit_pool_size, ?DEFAULT_POOL_SIZE),
+    ChildMods = [fusco],
+    ChildMF = {fusco, start_link},
+    already_started_is_ok(
+      supervisor:start_child(
+        erlcloud_sup,
+        {{fusco_sup, PoolName},
+         {cuesport, start_link,
+          [PoolName, PoolSize, ChildMods, ChildMF, {for_all, [PoolBase, FuscoOpts]}]},
+         transient, 2000, supervisor, [cuesport | ChildMods]})).
+
+already_started_is_ok({ok, _Pid}) -> ok;
+already_started_is_ok({error, {already_started, _}}) -> ok.
+
+normalise_method(Method) ->
+    string:to_upper(atom_to_list(Method)).
+
+normalise_headers(Headers) ->
+    [ {iolist_to_binary(Key), iolist_to_binary(Value)} || {Key, Value} <- Headers ].
 

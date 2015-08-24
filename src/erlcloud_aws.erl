@@ -222,19 +222,19 @@ get_credentials_from_metadata(Config) ->
     %% TODO this function should retry on errors getting credentials
     %% First get the list of roles
     case http_body(
-           erlcloud_httpc:request(
+           erlcloud_httpc:adhoc_request(
              "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
-             get, [], <<>>, Config#aws_config.timeout, Config)) of
+             "GET", [], <<>>, Config#aws_config.timeout, Config)) of
         {error, Reason} ->
             {error, Reason};
         {ok, Body} ->
             %% Always use the first role
             [Role | _] = binary:split(Body, <<$\n>>),
             case http_body(
-                   erlcloud_httpc:request(
+                   erlcloud_httpc:adhoc_request(
                      "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++
                          binary_to_list(Role),
-                     get, [], <<>>, Config#aws_config.timeout, Config)) of
+                     "GET", [], <<>>, Config#aws_config.timeout, Config)) of
                 {error, Reason} ->
                     {error, Reason};
                 {ok, Json} ->
@@ -311,7 +311,7 @@ sign_v4(Config, Headers, Payload, Region, Service) ->
     SigningKey = signing_key(Config, Date, Region, Service),
     Signature = base16(erlcloud_util:sha256_mac( SigningKey, ToSign)),
     Authorization = authorization(Config, CredentialScope, SignedHeaders, Signature),
-    [{"Authorization", lists:flatten(Authorization)} | Headers2].
+    [{<<"Authorization">>, iolist_to_binary(Authorization)} | Headers2].
 
 iso_8601_basic_time() ->
     {{Year,Month,Day},{Hour,Min,Sec}} = calendar:now_to_universal_time(os:timestamp()),
