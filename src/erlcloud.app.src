@@ -18,7 +18,8 @@
   {modules, []},
   {mod, {erlcloud_app, []}},
   {env, [
-         {pools, [{erlcloud_pool, [{pool_size, 500}]}]}
+         {pools, [{erlcloud_pool, [{pool_size, 500}]}]},
+         {implicit_pool_size, 100}
         ]}
  ]
 }.

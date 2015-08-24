@@ -39,28 +39,29 @@ adhoc_request(BaseURL, Path, Method, Hdrs, Body, Timeout) ->
     fusco:disconnect(ConnPid),
     Result.
 
-get_worker(#fusco_url{ host = Host, port = Port, is_ssl = IsSSL } = FuscoURL) ->
-    case get(aws_pool) of
-        undefined ->
-            put(aws_pool, list_to_atom(?DEFAULT_POOL_BASE_NAME ++ Host)),
-            get_worker(FuscoURL);
-        PoolName ->
-            case ets:info(PoolName) of
-                undefined -> new_pool(PoolName, {Host, Port, IsSSL});
-                _ -> ok
-            end,
-            cuesport:get_worker(PoolName)
-    end.
+get_worker(#fusco_url{ host = Host, port = Port, is_ssl = IsSSL }) ->
+    PoolName = case get_pool() of
+                   undefined -> list_to_atom(?DEFAULT_POOL_BASE_NAME ++ Host);
+                   PoolName0 -> PoolName0
+               end,
+    case ets:info(PoolName) of
+        undefined -> new_pool(PoolName, {Host, Port, IsSSL});
+        _ -> ok
+    end,
+    cuesport:get_worker(PoolName).
+
+get_pool() ->
+    get(aws_pool).
 
 new_pool(PoolName, PoolBase) ->
     FuscoOpts = [{connect_timeout, 30000}],
-    PoolSize = ?DEFAULT_POOL_SIZE,
+    PoolSize = application:get_env(erlcloud, implicit_pool_size, ?DEFAULT_POOL_SIZE),
     ChildMods = [fusco],
     ChildMF = {fusco, start_link},
     already_started_is_ok(
       supervisor:start_child(
-        ejabberd_sup,
-        {{libon_fusco_sup, PoolName},
+        erlcloud_sup,
+        {{fusco_sup, PoolName},
          {cuesport, start_link,
           [PoolName, PoolSize, ChildMods, ChildMF, {for_all, [PoolBase, FuscoOpts]}]},
          transient, 2000, supervisor, [cuesport | ChildMods]})).
@@ -72,6 +73,5 @@ normalise_method(Method) ->
     string:to_upper(atom_to_list(Method)).
 
 normalise_headers(Headers) ->
-    Headers1 = [ {iolist_to_binary(Key), iolist_to_binary(Value)} || {Key, Value} <- Headers ],
-    [ {<<"Connection">>, <<"keep-alive">>} | Headers1 ].
+    [ {iolist_to_binary(Key), iolist_to_binary(Value)} || {Key, Value} <- Headers ].
 
