@@ -120,14 +120,14 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers0, Config) ->
     AWSRequest = case Method of
             get ->
                 AWSRequest0#aws_request{
-                  uri = iolist_to_binary([URL, $?, Form]),
+                  uri = lists:flatten([URL, $?, Form]),
                   request_headers = Headers0,
                   request_body = <<>>
                  };
             _ ->
                 AWSRequest0#aws_request{
-                  uri = iolist_to_binary([URL]),
-                  request_headers = [{"content-type", "application/x-www-form-urlencoded; charset=utf-8"} | Headers0],
+                  uri = lists:flatten(URL),
+                  request_headers = [{<<"content-type">>, <<"application/x-www-form-urlencoded; charset=utf-8">>} | Headers0],
                   request_body = iolist_to_binary([Form])
                  }
         end,
