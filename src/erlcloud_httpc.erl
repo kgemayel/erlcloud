@@ -17,7 +17,7 @@
 -define(DEFAULT_POOL_SIZE, 10).
 -define(DEFAULT_POOL_BASE_NAME, "erlcloud_pool_").
 
--spec request(URL :: string(), Method0 :: atom(), Headers :: [{binary(), binary()}],
+-spec request(URL :: string(), Method0 :: atom(), Headers :: [{string() | binary(), string() | binary()}],
               Body :: binary(), Timeout :: non_neg_integer(), Config :: #aws_config{}) ->
     {ok, {{integer(), binary()}, [{binary(), binary()}], binary()}} | {error, atom()}.
 request(URL, Method0, Hdrs, Body, Timeout, _Config) ->
@@ -84,7 +84,12 @@ already_started_is_ok({error, {already_started, _}}) -> ok.
 normalise_method(Method) ->
     string:to_upper(atom_to_list(Method)).
 
--spec normalise_headers(RawHeaders :: [{iolist(), iolist()}]) -> [{binary(), binary()}].
+-spec normalise_headers(RawHeaders :: [{binary() | string(), binary() | string()}]) ->
+    [{binary(), binary()}].
 normalise_headers(Headers) ->
-    [ {iolist_to_binary(Key), iolist_to_binary(Value)} || {Key, Value} <- Headers ].
+    [ {ensure_binary(Key), ensure_binary(Value)} || {Key, Value} <- Headers ].
+
+-spec ensure_binary(binary() | string()) -> binary().
+ensure_binary(Bin) when is_binary(Bin) -> Bin;
+ensure_binary(Str) when is_list(Str) -> list_to_binary(Str).
 
