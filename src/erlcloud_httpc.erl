@@ -17,6 +17,9 @@
 -define(DEFAULT_POOL_SIZE, 10).
 -define(DEFAULT_POOL_BASE_NAME, "erlcloud_pool_").
 
+-spec request(URL :: string(), Method0 :: atom(), Headers :: [{binary(), binary()}],
+              Body :: binary(), Timeout :: non_neg_integer(), Config :: #aws_config{}) ->
+    {ok, {{integer(), binary()}, [{binary(), binary()}], binary()}} | {error, atom()}.
 request(URL, Method0, Hdrs, Body, Timeout, _Config) ->
     Method = normalise_method(Method0),
     FuscoURL = fusco_lib:parse_url(URL),
@@ -28,6 +31,10 @@ request(URL, Method0, Hdrs, Body, Timeout, _Config) ->
             Error
     end.
 
+-spec adhoc_request(BaseURL :: string(), Path :: string(), Method :: string(),
+                    Headers :: [{binary(), binary()}], Body :: binary(),
+                    Timeout :: non_neg_integer()) ->
+    {ok, {{binary(), binary()}, [{binary(), binary()}], binary()}} | {error, atom()}.
 adhoc_request(BaseURL, Path, Method, Hdrs, Body, Timeout) ->
     {ok, ConnPid} = fusco:start(BaseURL, []),
     Result = case fusco:request(ConnPid, Path, Method, Hdrs, Body, 0, Timeout) of
@@ -39,6 +46,7 @@ adhoc_request(BaseURL, Path, Method, Hdrs, Body, Timeout) ->
     fusco:disconnect(ConnPid),
     Result.
 
+-spec get_worker(#fusco_url{}) -> pid().
 get_worker(#fusco_url{ host = Host, port = Port, is_ssl = IsSSL }) ->
     PoolName = case get_pool() of
                    undefined -> list_to_atom(?DEFAULT_POOL_BASE_NAME ++ Host);
@@ -50,9 +58,11 @@ get_worker(#fusco_url{ host = Host, port = Port, is_ssl = IsSSL }) ->
     end,
     cuesport:get_worker(PoolName).
 
+-spec get_pool() -> atom().
 get_pool() ->
     get(aws_pool).
 
+-spec new_pool(PoolName :: atom(), PoolBase :: string()) -> ok.
 new_pool(PoolName, PoolBase) ->
     FuscoOpts = [{connect_timeout, 30000}],
     PoolSize = application:get_env(erlcloud, implicit_pool_size, ?DEFAULT_POOL_SIZE),
@@ -66,12 +76,15 @@ new_pool(PoolName, PoolBase) ->
           [PoolName, PoolSize, ChildMods, ChildMF, {for_all, [PoolBase, FuscoOpts]}]},
          transient, 2000, supervisor, [cuesport | ChildMods]})).
 
+-spec already_started_is_ok(Result :: {ok, pid()} | {error, {already_started, pid()}}) -> ok.
 already_started_is_ok({ok, _Pid}) -> ok;
 already_started_is_ok({error, {already_started, _}}) -> ok.
 
+-spec normalise_method(Method :: atom()) -> string().
 normalise_method(Method) ->
     string:to_upper(atom_to_list(Method)).
 
+-spec normalise_headers(RawHeaders :: [{iolist(), iolist()}]) -> [{binary(), binary()}].
 normalise_headers(Headers) ->
     [ {iolist_to_binary(Key), iolist_to_binary(Value)} || {Key, Value} <- Headers ].
 
