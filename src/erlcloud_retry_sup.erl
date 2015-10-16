@@ -23,6 +23,8 @@ start_link() ->
 
 -spec start_retry_handler(#aws_config{}, #aws_request{}) -> ok.
 start_retry_handler(Config, Request) ->
+    lager:info("[Erlcloud:start_retry_handler] Config=~p Request=~p",
+        [Config, Request]),
     {ok, _Pid} = supervisor:start_child(?MODULE, [Config, Request]),
     ok.
 

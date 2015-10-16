@@ -57,8 +57,10 @@ request(Config, #aws_request{attempt = 0} = Request) ->
 -spec request_and_retry(#aws_config{}, result_fun(), {error | retry, #aws_request{}}) ->
     #aws_request{}.
 request_and_retry(_, _, {error, Request}) ->
+    lager:error("[Erlcloud:request_and_retry error for=~p", [Request]),
     Request;
 request_and_retry(Config, ResultFun, {retry, Request}) ->
+    lager:info("[Erlcloud:request_and_retry retry for ~p with config=~p", [Config, ResultFun]),
     #aws_request{
        attempt = Attempt,
        uri = URI,
@@ -71,6 +73,8 @@ request_and_retry(Config, ResultFun, {retry, Request}) ->
     case erlcloud_httpc:request(URI, Method, Headers, Body,
                                 parse_timeout(Attempt + 1, Config#aws_config.timeout), Config) of
         {ok, {{Status, StatusLine}, ResponseHeaders, ResponseBody}} ->
+            lager:info("[Erlcloud:request_and_retry result OK Status=~p StatusLine=~p ResponseHeaders=~p ResponseBody=~p for request=~p",
+                [Status, StatusLine, ResponseHeaders, ResponseBody, Request]),
             Request3 = Request2#aws_request{
                          response_type = if Status >= 200, Status < 300 -> ok; true -> error end,
                          error_type = aws,
@@ -86,8 +90,12 @@ request_and_retry(Config, ResultFun, {retry, Request}) ->
                     request_and_retry(Config, ResultFun, RetryFun(Request4))
             end;
         ok ->
+            lager:info("[Erlcloud:request_and_retry result OK for request=~p",
+                [Request2]),
             Request2#aws_request{ response_type = ok, error_type = aws };
         {error, Reason} ->
+            lager:error("[Erlcloud:request_and_retry] error=~p for request=~p",
+                [Reason, Request2]),
             Request4 = Request2#aws_request{
                          response_type = error,
                          error_type = httpc,
