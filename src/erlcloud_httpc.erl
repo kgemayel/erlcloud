@@ -23,11 +23,17 @@
 request(URL, Method0, Hdrs, Body, Timeout, _Config) ->
     Method = normalise_method(Method0),
     FuscoURL = fusco_lib:parse_url(URL),
+    lager:info("[~p:REQUEST] URL=~p Method=~p Hdrs=~p Body=~p",
+        [?MODULE, FuscoURL, Method, Hdrs, Body]),
     case fusco:request(get_worker(FuscoURL), list_to_binary(FuscoURL#fusco_url.path),
                        Method, normalise_headers(Hdrs), Body, 0, Timeout) of
         {ok, {{Status, StatusLine}, RespHeaders, RespBody, _, _}} ->
+            lager:info("[~p:RESPONSE] Status=~p StatusLine=~p RespHeaders=~p RespBody=~p URL=~p Method=~p Hdrs=~p Body=~p",
+                [?MODULE, Status, StatusLine, RespHeaders, RespBody, FuscoURL, Method, Hdrs, Body]),
             {ok, {{binary_to_integer(Status), StatusLine}, RespHeaders, RespBody}};
         Error ->
+            lager:error("[~p:RESPONSE] URL=~p Method=~p Hdrs=~p Body=~p Error=~p",
+                [?MODULE, FuscoURL, Method, Hdrs, Body, Error]),
             Error
     end.
 
@@ -37,10 +43,16 @@ request(URL, Method0, Hdrs, Body, Timeout, _Config) ->
     {ok, {{binary(), binary()}, [{binary(), binary()}], binary()}} | {error, atom()}.
 adhoc_request(BaseURL, Path, Method, Hdrs, Body, Timeout) ->
     {ok, ConnPid} = fusco:start(BaseURL, []),
+    lager:info("[~p:ADHOC_REQUEST] BaseURL=~p Path=~p Method=~p Hdrs=~p Body=~p",
+        [?MODULE, BaseURL, Path, Method, Hdrs, Body]),
     Result = case fusco:request(ConnPid, Path, Method, Hdrs, Body, 0, Timeout) of
                  {ok, {{Status, StatusLine}, RespHeaders, RespBody, _, _}} ->
+                    lager:info("[~p:ADHOC_RESPONSE] Status=~p StatusLine=~p RespHeaders=~p RespBody=~p BaseURL=~p Path=~p Method=~p Hdrs=~p Body=~p",
+                        [?MODULE, Status, StatusLine, RespHeaders, RespBody, BaseURL, Path, Method, Hdrs, Body]),
                      {ok, {{Status, StatusLine}, RespHeaders, RespBody}};
                  Error ->
+                    lager:error("[~p:RESPONSE] BaseURL=~p Path=~p Method=~p Hdrs=~p Body=~p Error=~p",
+                        [?MODULE, BaseURL, Path, Method, Hdrs, Body, Error]),
                      Error
              end,
     fusco:disconnect(ConnPid),
